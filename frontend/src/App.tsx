@@ -13,6 +13,7 @@ import PaymentFailurePage from './pages/PaymentFailurePage'
 import OrdersPage from './pages/OrdersPage'
 import OrderTrackingPage from './pages/OrderTrackingPage'
 import ProfilePage from './pages/ProfilePage'
+import FavoritesPage from './pages/FavoritesPage'
 import AdminDashboard from './pages/AdminDashboard'
 import { loadUser } from './redux/userSlice'
 import type { AppDispatch } from './redux/store'
@@ -40,6 +41,7 @@ function App() {
         <Route path="/orders/:orderId" element={<ProtectedRoute><OrderTrackingPage /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
         <Route path="/admin-dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

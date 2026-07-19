@@ -10,7 +10,12 @@ const {
     toggleFavorite,
     updateProfile,
     updatePassword,
-    uploadAvatar
+    uploadAvatar,
+    getAddresses,
+    addAddress,
+    updateAddress,
+    deleteAddress,
+    setDefaultAddress
 } = require('../controllers/authController');
 
 const { isAuthenticatedUser } = require('../middlewares/auth');
@@ -24,5 +29,10 @@ router.route('/me/favorites').get(isAuthenticatedUser, getFavoriteItems).post(is
 router.route('/me/update').put(isAuthenticatedUser, updateProfile);
 router.route('/password/update').put(isAuthenticatedUser, updatePassword);
 router.route('/me/avatar').post(isAuthenticatedUser, upload.single('avatar'), uploadAvatar);
+
+// Address management routes
+router.route('/me/addresses').get(isAuthenticatedUser, getAddresses).post(isAuthenticatedUser, addAddress);
+router.route('/me/addresses/:id').put(isAuthenticatedUser, updateAddress).delete(isAuthenticatedUser, deleteAddress);
+router.route('/me/addresses/:id/default').put(isAuthenticatedUser, setDefaultAddress);
 
 module.exports = router;

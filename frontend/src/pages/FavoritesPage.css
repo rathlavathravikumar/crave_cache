@@ -1,0 +1,238 @@
+.favorites-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.favorites-page__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 4rem 2rem;
+  color: #6b7280;
+}
+
+.favorites-page__header {
+  margin-bottom: 2rem;
+}
+
+.favorites-page__header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.favorites-page__header p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.favorites-page__tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.favorites-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background-color: transparent;
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -2px;
+}
+
+.favorites-tab:hover {
+  color: #ff6b00;
+}
+
+.favorites-tab--active {
+  border-bottom-color: #ff6b00;
+  color: #ff6b00;
+}
+
+.favorites-page__content {
+  min-height: 400px;
+}
+
+.favorites-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.favorites-page__empty svg {
+  color: #d1d5db;
+}
+
+.favorites-page__empty h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.favorites-page__empty p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.favorites-page__cta {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  background-color: #ff6b00;
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.favorites-page__cta:hover {
+  background-color: #e65a00;
+}
+
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.favorite-card {
+  position: relative;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background-color: white;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.favorite-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.favorite-card__heart-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background-color: white;
+  color: #d1d5db;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.favorite-card__heart-btn:hover {
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+.favorite-card__heart-btn--active {
+  color: #ef4444;
+}
+
+.favorite-card__image {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  background-color: #f3f4f6;
+}
+
+.favorite-card__content {
+  padding: 1rem;
+}
+
+.favorite-card__content h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favorite-card__restaurant,
+.favorite-card__cuisine {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favorite-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.favorite-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.favorite-card__price {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ff6b00;
+}
+
+.favorite-card__location {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+@media (max-width: 640px) {
+  .favorites-page {
+    padding: 1rem;
+  }
+
+  .favorites-page__header h1 {
+    font-size: 1.5rem;
+  }
+
+  .favorites-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .favorites-tab {
+    padding: 0.625rem 1rem;
+    font-size: 0.9rem;
+  }
+}

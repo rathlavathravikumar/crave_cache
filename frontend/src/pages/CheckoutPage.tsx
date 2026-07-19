@@ -7,6 +7,7 @@ import { clearCart } from '../redux/cartSlice';
 import { setPaymentInProgress, setPaymentError } from '../redux/orderSlice';
 import api from '../api';
 import { Button, Error as ErrorCard } from '../components/ui/index';
+import AddressSelector from '../components/AddressSelector';
 import '../styles/pages.css';
 
 export default function CheckoutPage() {
@@ -19,10 +20,10 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountType: string; discountValue?: number; maxDiscountAmount?: number } | null>(null);
-  const selectedAddress = user?.addresses?.[0] ? {
+  const [selectedAddress, setSelectedAddress] = useState<any>(user?.addresses?.[0] ? {
     ...user.addresses[0],
     pincode: user.addresses[0].pincode || user.addresses[0].postalCode || '',
-  } : null;
+  } : null);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [couponError, setCouponError] = useState('');
 
@@ -206,24 +207,11 @@ export default function CheckoutPage() {
             <MapPin size={20} />
             <h3>Delivery Address</h3>
           </div>
-          {selectedAddress && (
-            <div className="address-box">
-              <p className="address-label">{selectedAddress.label}</p>
-              <p className="address-text">
-                {selectedAddress.houseNo}, {selectedAddress.street}
-              </p>
-              <p className="address-text">
-                {selectedAddress.city}, {selectedAddress.state} {selectedAddress.pincode}
-              </p>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/profile')}
-              >
-                Change address
-              </Button>
-            </div>
-          )}
+          <AddressSelector
+            selectedAddressId={selectedAddress?._id}
+            onAddressSelect={setSelectedAddress}
+            compact={true}
+          />
         </div>
 
         {/* Coupon Code */}

@@ -1,6 +1,8 @@
 const Order = require('../models/order');
+const User = require('../models/user');
 const ErrorHandler = require('../utils/errorHandler');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
+const { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } = require('../utils/emailService');
 
 // Create new order   =>   /api/v1/order/new
 exports.newOrder = catchAsyncErrors(async (req, res, next) => {
@@ -39,6 +41,12 @@ exports.newOrder = catchAsyncErrors(async (req, res, next) => {
             }
         ]
     });
+
+    // Send order confirmation email
+    const user = await User.findById(req.user._id);
+    if (user) {
+        sendOrderConfirmationEmail(order, user);
+    }
 
     res.status(200).json({
         success: true,
@@ -113,6 +121,12 @@ exports.updateOrderStatus = catchAsyncErrors(async (req, res, next) => {
     }
 
     await order.save();
+
+    // Send status update email
+    const user = await User.findById(order.user);
+    if (user) {
+        sendOrderStatusUpdateEmail(order, user, status);
+    }
 
     res.status(200).json({
         success: true,

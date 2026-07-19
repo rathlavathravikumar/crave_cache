@@ -403,3 +403,192 @@ exports.uploadAvatar = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler(error.message || 'Failed to upload avatar', 500));
     }
 });
+
+// Get user addresses => /api/v1/me/addresses
+exports.getAddresses = catchAsyncErrors(async (req, res, next) => {
+    if (!isDatabaseReady()) {
+        try {
+            await connectDatabase();
+        } catch (error) {
+            const user = getFallbackUserById(req.user.id);
+            return res.status(200).json({ success: true, addresses: user?.addresses || [] });
+        }
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        return next(new ErrorHandler('User not found', 404));
+    }
+
+    res.status(200).json({ success: true, addresses: user.addresses || [] });
+});
+
+// Add new address => /api/v1/me/addresses
+exports.addAddress = catchAsyncErrors(async (req, res, next) => {
+    const { label, street, city, state, postalCode, country, isDefault } = req.body;
+
+    if (!street || !city || !state || !postalCode) {
+        return next(new ErrorHandler('Please provide all required address fields', 400));
+    }
+
+    if (!isDatabaseReady()) {
+        try {
+            await connectDatabase();
+        } catch (error) {
+            const user = getFallbackUserById(req.user.id);
+            const newAddress = { label, street, city, state, postalCode, country, isDefault };
+            const updatedAddresses = [...(user?.addresses || []), newAddress];
+            const updatedUser = updateFallbackUser(req.user.id, { ...user, addresses: updatedAddresses });
+            return res.status(201).json({ success: true, address: newAddress, user: updatedUser });
+        }
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        return next(new ErrorHandler('User not found', 404));
+    }
+
+    // If setting as default, remove default from other addresses
+    if (isDefault) {
+        user.addresses.forEach(addr => addr.isDefault = false);
+    }
+
+    const newAddress = {
+        label: label || 'Home',
+        street,
+        city,
+        state,
+        postalCode,
+        country: country || 'India',
+        isDefault: isDefault || false
+    };
+
+    user.addresses.push(newAddress);
+    await user.save();
+
+    res.status(201).json({ success: true, address: newAddress, user });
+});
+
+// Update address => /api/v1/me/addresses/:id
+exports.updateAddress = catchAsyncErrors(async (req, res, next) => {
+    const { label, street, city, state, postalCode, country, isDefault } = req.body;
+
+    if (!isDatabaseReady()) {
+        try {
+            await connectDatabase();
+        } catch (error) {
+            const user = getFallbackUserById(req.user.id);
+            const addressIndex = user.addresses.findIndex(addr => addr._id.toString() === req.params.id);
+            if (addressIndex === -1) {
+                return next(new ErrorHandler('Address not found', 404));
+            }
+            const updatedAddress = { ...user.addresses[addressIndex], label, street, city, state, postalCode, country, isDefault };
+            user.addresses[addressIndex] = updatedAddress;
+            const updatedUser = updateFallbackUser(req.user.id, user);
+            return res.status(200).json({ success: true, address: updatedAddress, user: updatedUser });
+        }
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        return next(new ErrorHandler('User not found', 404));
+    }
+
+    const addressIndex = user.addresses.findIndex(addr => addr._id.toString() === req.params.id);
+    if (addressIndex === -1) {
+        return next(new ErrorHandler('Address not found', 404));
+    }
+
+    // If setting as default, remove default from other addresses
+    if (isDefault) {
+        user.addresses.forEach(addr => addr.isDefault = false);
+    }
+
+    user.addresses[addressIndex] = {
+        ...user.addresses[addressIndex],
+        label: label || user.addresses[addressIndex].label,
+        street: street || user.addresses[addressIndex].street,
+        city: city || user.addresses[addressIndex].city,
+        state: state || user.addresses[addressIndex].state,
+        postalCode: postalCode || user.addresses[addressIndex].postalCode,
+        country: country || user.addresses[addressIndex].country,
+        isDefault: isDefault !== undefined ? isDefault : user.addresses[addressIndex].isDefault
+    };
+
+    await user.save();
+
+    res.status(200).json({ success: true, address: user.addresses[addressIndex], user });
+});
+
+// Delete address => /api/v1/me/addresses/:id
+exports.deleteAddress = catchAsyncErrors(async (req, res, next) => {
+    if (!isDatabaseReady()) {
+        try {
+            await connectDatabase();
+        } catch (error) {
+            const user = getFallbackUserById(req.user.id);
+            const addressIndex = user.addresses.findIndex(addr => addr._id.toString() === req.params.id);
+            if (addressIndex === -1) {
+                return next(new ErrorHandler('Address not found', 404));
+            }
+            user.addresses.splice(addressIndex, 1);
+            const updatedUser = updateFallbackUser(req.user.id, user);
+            return res.status(200).json({ success: true, message: 'Address deleted successfully', user: updatedUser });
+        }
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        return next(new ErrorHandler('User not found', 404));
+    }
+
+    const addressIndex = user.addresses.findIndex(addr => addr._id.toString() === req.params.id);
+    if (addressIndex === -1) {
+        return next(new ErrorHandler('Address not found', 404));
+    }
+
+    // If deleting default address, set another as default if available
+    if (user.addresses[addressIndex].isDefault && user.addresses.length > 1) {
+        user.addresses[(addressIndex === 0 ? 1 : 0)].isDefault = true;
+    }
+
+    user.addresses.splice(addressIndex, 1);
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Address deleted successfully', user });
+});
+
+// Set default address => /api/v1/me/addresses/:id/default
+exports.setDefaultAddress = catchAsyncErrors(async (req, res, next) => {
+    if (!isDatabaseReady()) {
+        try {
+            await connectDatabase();
+        } catch (error) {
+            const user = getFallbackUserById(req.user.id);
+            const addressIndex = user.addresses.findIndex(addr => addr._id.toString() === req.params.id);
+            if (addressIndex === -1) {
+                return next(new ErrorHandler('Address not found', 404));
+            }
+            user.addresses.forEach(addr => addr.isDefault = false);
+            user.addresses[addressIndex].isDefault = true;
+            const updatedUser = updateFallbackUser(req.user.id, user);
+            return res.status(200).json({ success: true, user: updatedUser });
+        }
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        return next(new ErrorHandler('User not found', 404));
+    }
+
+    const addressIndex = user.addresses.findIndex(addr => addr._id.toString() === req.params.id);
+    if (addressIndex === -1) {
+        return next(new ErrorHandler('Address not found', 404));
+    }
+
+    user.addresses.forEach(addr => addr.isDefault = false);
+    user.addresses[addressIndex].isDefault = true;
+    await user.save();
+
+    res.status(200).json({ success: true, user });
+});

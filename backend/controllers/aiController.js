@@ -3,6 +3,7 @@ const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 
 const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
+const groqModel = process.env.GROQ_MODEL || 'llama-3.1-70b-versatile';
 
 const fallbackDescription = (itemName) => `A crave-worthy ${itemName} crafted with fresh ingredients, bold spices, and a comforting finish.`;
 const fallbackReviewAnalysis = (review) => {
@@ -59,7 +60,7 @@ exports.generateDescription = catchAsyncErrors(async (req, res, next) => {
 
     try {
         const chatCompletion = await groq.chat.completions.create({
-            model: 'llama-3.1-70b-versatile',
+            model: groqModel,
             messages: [
                 {
                     role: 'system',
@@ -82,7 +83,7 @@ exports.analyzeReview = catchAsyncErrors(async (req, res, next) => {
 
     try {
         const chatCompletion = await groq.chat.completions.create({
-            model: 'llama-3.1-70b-versatile',
+            model: groqModel,
             temperature: 0,
             response_format: { type: 'json_object' },
             messages: [
