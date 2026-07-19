@@ -82,6 +82,16 @@ const userSchema = new mongoose.Schema({
         pushNotifications: { type: Boolean, default: true },
         darkMode: { type: Boolean, default: false }
     },
+    favoriteFoodItems: [{
+        type: mongoose.Schema.ObjectId,
+        ref: 'FoodItem',
+        default: []
+    }],
+    favoriteRestaurants: [{
+        type: mongoose.Schema.ObjectId,
+        ref: 'Restaurant',
+        default: []
+    }],
     createdAt: {
         type: Date,
         default: Date.now

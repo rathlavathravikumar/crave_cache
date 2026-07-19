@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../redux/store';
 import { fetchOrders } from '../redux/orderSlice';
@@ -19,6 +20,7 @@ export default function OrdersPage() {
           <h3>Order #{order._id.slice(-4)}</h3>
           <p>Status: {order.orderStatus}</p>
           <p>Total: ₹{order.totalPrice}</p>
+          <Link to={`/orders/${order._id}`}>Track order</Link>
         </div>
       ))}
     </div>

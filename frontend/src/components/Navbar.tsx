@@ -98,6 +98,11 @@ export default function Navbar() {
           <Link to="/orders" className="navbar__link" onClick={closeMenus}>
             Orders
           </Link>
+          {user?.role === 'admin' && (
+            <Link to="/admin-dashboard" className="navbar__link" onClick={closeMenus}>
+              Admin Dashboard
+            </Link>
+          )}
 
           <div className="navbar__mobile-actions">
             <button type="button" className="navbar__action navbar__action--theme" onClick={toggleTheme}>
@@ -152,6 +157,12 @@ export default function Navbar() {
                 <span className="navbar__account-label">Welcome back</span>
                 <span className="navbar__account-name">{user.name}</span>
               </div>
+
+              {user.role === 'admin' && (
+                <Link to="/admin-dashboard" className="navbar__icon-button" title="Admin Dashboard">
+                  <Settings size={18} />
+                </Link>
+              )}
 
               <Link to="/profile" className="navbar__icon-button" title="Profile settings">
                 <User size={18} />

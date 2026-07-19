@@ -1,3 +1,5 @@
+
+
 const User = require('../models/user');
 const ErrorHandler = require('../utils/errorHandler');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
@@ -120,11 +122,121 @@ exports.getUserProfile = catchAsyncErrors(async (req, res, next) => {
         return res.status(200).json({ success: true, user });
     }
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).populate('favoriteFoodItems').populate('favoriteRestaurants');
 
     res.status(200).json({
         success: true,
         user
+    });
+});
+
+exports.getFavoriteItems = catchAsyncErrors(async (req, res, next) => {
+    if (!isDatabaseReady()) {
+        try {
+            await connectDatabase();
+        } catch (error) {
+            // fall through to fallback handling
+        }
+    }
+
+    if (!isDatabaseReady()) {
+        const fallbackUser = getFallbackUserById(req.user.id);
+        if (!fallbackUser) {
+            return next(new ErrorHandler('User not found', 404));
+        }
+
+        return res.status(200).json({
+            success: true,
+            favorites: {
+                foodItems: fallbackUser.favoriteFoodItems || [],
+                restaurants: fallbackUser.favoriteRestaurants || []
+            }
+        });
+    }
+
+    const user = await User.findById(req.user.id).populate('favoriteFoodItems').populate('favoriteRestaurants');
+    if (!user) {
+        return next(new ErrorHandler('User not found', 404));
+    }
+
+    res.status(200).json({
+        success: true,
+        favorites: {
+            foodItems: user.favoriteFoodItems || [],
+            restaurants: user.favoriteRestaurants || []
+        }
+    });
+});
+
+exports.toggleFavorite = catchAsyncErrors(async (req, res, next) => {
+    const { type, itemId } = req.body;
+
+    if (!type || !itemId) {
+        return next(new ErrorHandler('Please provide favorite type and item id', 400));
+    }
+
+    if (!['foodItem', 'restaurant'].includes(type)) {
+        return next(new ErrorHandler('Favorite type must be either foodItem or restaurant', 400));
+    }
+
+    if (!isDatabaseReady()) {
+        try {
+            await connectDatabase();
+        } catch (error) {
+            // fall through to fallback handling
+        }
+    }
+
+    if (!isDatabaseReady()) {
+        const fallbackUser = getFallbackUserById(req.user.id);
+        if (!fallbackUser) {
+            return next(new ErrorHandler('User not found', 404));
+        }
+
+        const targetKey = type === 'foodItem' ? 'favoriteFoodItems' : 'favoriteRestaurants';
+        const currentFavorites = fallbackUser[targetKey] || [];
+        const alreadyFavorite = currentFavorites.includes(itemId);
+        const updatedFavorites = alreadyFavorite
+            ? currentFavorites.filter((favoriteId) => favoriteId !== itemId)
+            : [...currentFavorites, itemId];
+
+        updateFallbackUser(req.user.id, { [targetKey]: updatedFavorites });
+
+        return res.status(200).json({
+            success: true,
+            isFavorite: !alreadyFavorite,
+            favorites: {
+                foodItems: fallbackUser.favoriteFoodItems || [],
+                restaurants: fallbackUser.favoriteRestaurants || []
+            }
+        });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        return next(new ErrorHandler('User not found', 404));
+    }
+
+    const collectionKey = type === 'foodItem' ? 'favoriteFoodItems' : 'favoriteRestaurants';
+    const existingFavorites = user[collectionKey] || [];
+    const favoriteIndex = existingFavorites.findIndex((favoriteId) => favoriteId.toString() === itemId);
+
+    if (favoriteIndex >= 0) {
+        existingFavorites.splice(favoriteIndex, 1);
+    } else {
+        existingFavorites.push(itemId);
+    }
+
+    user[collectionKey] = existingFavorites;
+    await user.save();
+
+    res.status(200).json({
+        success: true,
+        isFavorite: favoriteIndex === -1,
+        favorites: {
+            foodItems: user.favoriteFoodItems || [],
+            restaurants: user.favoriteRestaurants || []
+        }
     });
 });
 

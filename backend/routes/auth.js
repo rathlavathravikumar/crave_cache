@@ -6,6 +6,8 @@ const {
     loginUser,
     logout,
     getUserProfile,
+    getFavoriteItems,
+    toggleFavorite,
     updateProfile,
     updatePassword,
     uploadAvatar
@@ -18,6 +20,7 @@ router.route('/register').post(registerUser);
 router.route('/login').post(loginUser);
 router.route('/logout').get(logout);
 router.route('/me').get(isAuthenticatedUser, getUserProfile);
+router.route('/me/favorites').get(isAuthenticatedUser, getFavoriteItems).post(isAuthenticatedUser, toggleFavorite);
 router.route('/me/update').put(isAuthenticatedUser, updateProfile);
 router.route('/password/update').put(isAuthenticatedUser, updatePassword);
 router.route('/me/avatar').post(isAuthenticatedUser, upload.single('avatar'), uploadAvatar);

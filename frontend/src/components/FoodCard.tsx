@@ -1,8 +1,9 @@
 import React from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Plus, Minus, Heart, Clock, Star } from 'lucide-react';
-import type { AppDispatch } from '../redux/store';
+import type { AppDispatch, RootState } from '../redux/store';
 import { addToCart } from '../redux/cartSlice';
+import { toggleFavorite } from '../redux/userSlice';
 import type { FoodItem } from '../types';
 import { Card, CardImage, CardBody, PriceBadge, Button } from './ui/index';
 import { getFoodItemImage, placeholder } from '../utils/imageUtils';
@@ -10,8 +11,17 @@ import './FoodCard.css';
 
 export default function FoodCard({ foodItem, restaurantId }: { foodItem: FoodItem; restaurantId: string }) {
   const dispatch = useDispatch<AppDispatch>();
+  const { user, authStatus } = useSelector((state: RootState) => state.user);
   const [quantity, setQuantity] = React.useState(1);
   const [isFavorite, setIsFavorite] = React.useState(false);
+
+  React.useEffect(() => {
+    const favoriteIds = (user?.favoriteFoodItems || [])
+      .map((favorite) => typeof favorite === 'string' ? favorite : favorite?._id)
+      .filter(Boolean) as string[];
+
+    setIsFavorite(favoriteIds.includes(foodItem._id));
+  }, [user?.favoriteFoodItems, foodItem._id]);
 
   const handleAddToCart = () => {
     dispatch(addToCart({ foodItem, restaurantId, quantity }));
@@ -23,6 +33,20 @@ export default function FoodCard({ foodItem, restaurantId }: { foodItem: FoodIte
 
   const decrementQuantity = () => {
     setQuantity(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleToggleFavorite = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (authStatus !== 'authenticated') {
+      return;
+    }
+
+    const result = await dispatch(toggleFavorite({ type: 'foodItem', itemId: foodItem._id }));
+    if (toggleFavorite.fulfilled.match(result)) {
+      setIsFavorite(result.payload.isFavorite);
+    }
   };
 
   return (
@@ -45,7 +69,7 @@ export default function FoodCard({ foodItem, restaurantId }: { foodItem: FoodIte
       
       <button 
         className={`food-card__favorite ${isFavorite ? 'food-card__favorite--active' : ''}`}
-        onClick={() => setIsFavorite(!isFavorite)}
+        onClick={handleToggleFavorite}
         aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
       >
         <Heart 

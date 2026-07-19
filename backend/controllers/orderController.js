@@ -5,25 +5,39 @@ const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 // Create new order   =>   /api/v1/order/new
 exports.newOrder = catchAsyncErrors(async (req, res, next) => {
     const {
+        restaurant,
         orderItems,
         deliveryInfo,
         itemsPrice,
         taxPrice,
-        shippingPrice,
+        deliveryPrice,
         totalPrice,
-        paymentInfo
+        paymentInfo,
+        discountAmount,
+        coupon
     } = req.body;
 
     const order = await Order.create({
+        user: req.user._id,
+        restaurant,
         orderItems,
         deliveryInfo,
         itemsPrice,
         taxPrice,
-        shippingPrice,
+        deliveryPrice,
+        discountAmount,
+        coupon,
         totalPrice,
         paymentInfo,
         paidAt: Date.now(),
-        user: req.user._id
+        orderStatus: 'Pending',
+        statusHistory: [
+            {
+                status: 'Pending',
+                timestamp: new Date(),
+                notes: 'Order created successfully'
+            }
+        ]
     });
 
     res.status(200).json({
