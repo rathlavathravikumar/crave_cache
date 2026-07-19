@@ -4,7 +4,7 @@ import { Button } from './ui/index';
 import api from '../api';
 
 interface ReviewFormProps {
-  orderId: string;
+  orderId?: string;
   restaurantId: string;
   onReviewSubmitted?: () => void;
 }
@@ -12,6 +12,7 @@ interface ReviewFormProps {
 export default function ReviewForm({ orderId, restaurantId, onReviewSubmitted }: ReviewFormProps) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
+  const [title, setTitle] = useState('');
   const [review, setReview] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -24,6 +25,11 @@ export default function ReviewForm({ orderId, restaurantId, onReviewSubmitted }:
       return;
     }
 
+    if (title.trim().length < 3) {
+      setError('Please add a short title');
+      return;
+    }
+
     if (review.trim().length < 10) {
       setError('Please write at least 10 characters');
       return;
@@ -33,14 +39,16 @@ export default function ReviewForm({ orderId, restaurantId, onReviewSubmitted }:
     setError('');
 
     try {
-      await api.post('/reviews', {
-        order: orderId,
-        restaurant: restaurantId,
+      await api.post('/reviews/new', {
+        orderId,
+        restaurantId,
         rating,
-        review
+        title: title.trim(),
+        comment: review.trim(),
       });
 
       setRating(0);
+      setTitle('');
       setReview('');
       onReviewSubmitted?.();
     } catch (error: any) {
@@ -73,6 +81,16 @@ export default function ReviewForm({ orderId, restaurantId, onReviewSubmitted }:
           <span className="rating-text">
             {rating > 0 ? `${rating} star${rating !== 1 ? 's' : ''}` : 'Select a rating'}
           </span>
+        </div>
+
+        <div className="review-title-input">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Give your review a short title"
+            maxLength={100}
+          />
         </div>
 
         {/* Review Text */}

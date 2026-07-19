@@ -142,7 +142,7 @@ export default function OrderTrackingPage() {
         <div className="timeline-section">
           <h3>Order Timeline</h3>
           <div className="timeline">
-            {statusOrder.slice(0, currentStatusIndex + 1).map((status, index) => {
+            {statusOrder.slice(0, currentStatusIndex + 1).map((status) => {
               const config = statusConfig[status];
               const Icon = config.icon;
               const statusHistory = order.statusHistory.find(h => h.status === status);

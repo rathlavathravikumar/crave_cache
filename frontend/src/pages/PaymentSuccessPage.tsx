@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, Clock, MapPin, PhoneCall } from 'lucide-react';
-import { Button, Loading } from '../components/ui/index';
+import { Button, FullPageLoading } from '../components/ui/index';
 import api from '../api';
 import '../styles/pages.css';
 
@@ -30,7 +30,6 @@ export default function PaymentSuccessPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const sessionId = searchParams.get('session_id');
   const orderId = searchParams.get('order_id');
 
   useEffect(() => {
@@ -60,7 +59,7 @@ export default function PaymentSuccessPage() {
   }, [orderId]);
 
   if (loading) {
-    return <Loading message="Loading your order confirmation..." />;
+    return <FullPageLoading message="Loading your order confirmation..." />;
   }
 
   if (error || !order) {
@@ -178,20 +177,13 @@ export default function PaymentSuccessPage() {
           </div>
         )}
 
-        {/* Info Message */}
-        <div className="info-box">
-          <p>
-            📍 <strong>Live tracking coming soon!</strong> You'll be able to track your delivery in real-time.
-          </p>
-        </div>
-
         {/* Action Buttons */}
         <div className="result-actions">
           <Button
             variant="primary"
             size="lg"
             fullWidth
-            onClick={() => navigate('/orders')}
+            onClick={() => navigate(`/orders/${order._id}`)}
           >
             Track Your Order
           </Button>

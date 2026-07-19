@@ -1,14 +1,41 @@
 import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { Clock, MapPin } from 'lucide-react';
+import type { AppDispatch, RootState } from '../redux/store';
+import { toggleFavorite } from '../redux/userSlice';
 import type { Restaurant } from '../types';
 import { Card, CardImage, CardBody, RatingBadge, QuickActionButton } from './ui/index';
 import { getRestaurantImage, placeholder } from '../utils/imageUtils';
 import './RestaurantCard.css';
 
 export default function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
+  const dispatch = useDispatch<AppDispatch>();
+  const { user, authStatus } = useSelector((state: RootState) => state.user);
   const [isFavorite, setIsFavorite] = React.useState(false);
+
+  React.useEffect(() => {
+    const favoriteIds = (user?.favoriteRestaurants || [])
+      .map((favorite) => typeof favorite === 'string' ? favorite : favorite?._id)
+      .filter(Boolean) as string[];
+
+    setIsFavorite(favoriteIds.includes(restaurant._id));
+  }, [user?.favoriteRestaurants, restaurant._id]);
   
+  const handleToggleFavorite = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (authStatus !== 'authenticated') {
+      return;
+    }
+
+    const result = await dispatch(toggleFavorite({ type: 'restaurant', itemId: restaurant._id }));
+    if (toggleFavorite.fulfilled.match(result)) {
+      setIsFavorite(result.payload.isFavorite);
+    }
+  };
+
   return (
     <Link to={`/restaurants/${restaurant._id}`} className="restaurant-card-link">
       <Card 
@@ -31,10 +58,7 @@ export default function RestaurantCard({ restaurant }: { restaurant: Restaurant 
         
         <button 
           className={`restaurant-card__favorite ${isFavorite ? 'restaurant-card__favorite--active' : ''}`}
-          onClick={(e) => {
-            e.preventDefault();
-            setIsFavorite(!isFavorite);
-          }}
+          onClick={handleToggleFavorite}
           aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         >
           <svg 

@@ -5,6 +5,8 @@ export interface User {
   role: 'user' | 'admin';
   phone?: string;
   avatar?: { public_id?: string; url: string };
+  favoriteFoodItems?: Array<string | { _id: string }>;
+  favoriteRestaurants?: Array<string | { _id: string }>;
   addresses?: Array<{
     label?: string;
     houseNo?: string;
@@ -12,6 +14,7 @@ export interface User {
     city?: string;
     state?: string;
     pincode?: string;
+    postalCode?: string;
     country?: string;
     isDefault?: boolean;
   }>;
@@ -67,4 +70,14 @@ export interface Order {
     city?: string;
     phoneNo?: string;
   };
+}
+
+export interface NotificationItem {
+  _id: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+  actionUrl?: string;
 }

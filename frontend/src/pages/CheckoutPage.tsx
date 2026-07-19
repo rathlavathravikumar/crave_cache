@@ -6,7 +6,7 @@ import type { AppDispatch, RootState } from '../redux/store';
 import { clearCart } from '../redux/cartSlice';
 import { setPaymentInProgress, setPaymentError } from '../redux/orderSlice';
 import api from '../api';
-import { Button, Loading, Error } from '../components/ui/index';
+import { Button, Error as ErrorCard } from '../components/ui/index';
 import '../styles/pages.css';
 
 export default function CheckoutPage() {
@@ -18,7 +18,11 @@ export default function CheckoutPage() {
 
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
-  const [selectedAddress, setSelectedAddress] = useState(user?.addresses?.[0] || null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountType: string; discountValue?: number; maxDiscountAmount?: number } | null>(null);
+  const selectedAddress = user?.addresses?.[0] ? {
+    ...user.addresses[0],
+    pincode: user.addresses[0].pincode || user.addresses[0].postalCode || '',
+  } : null;
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [couponError, setCouponError] = useState('');
 
@@ -29,14 +33,15 @@ export default function CheckoutPage() {
         <div className="section-header">
           <h2>Checkout</h2>
         </div>
-        <Error
-          title="Cart is empty"
+        <ErrorCard
+          message="Cart is empty"
           description="Please add items to your cart before checking out"
-          action={{
-            label: "Back to shopping",
-            onClick: () => navigate('/restaurants')
-          }}
         />
+        <div className="result-actions">
+          <Button variant="primary" size="lg" onClick={() => navigate('/restaurants')}>
+            Back to shopping
+          </Button>
+        </div>
       </div>
     );
   }
@@ -48,14 +53,15 @@ export default function CheckoutPage() {
         <div className="section-header">
           <h2>Checkout</h2>
         </div>
-        <Error
-          title="No delivery address"
+        <ErrorCard
+          message="No delivery address"
           description="Please add a delivery address to your profile before proceeding"
-          action={{
-            label: "Go to profile",
-            onClick: () => navigate('/profile')
-          }}
         />
+        <div className="result-actions">
+          <Button variant="primary" size="lg" onClick={() => navigate('/profile')}>
+            Go to profile
+          </Button>
+        </div>
       </div>
     );
   }
@@ -85,6 +91,7 @@ export default function CheckoutPage() {
 
       if (response.data.success) {
         setCouponDiscount(response.data.discountAmount);
+        setAppliedCoupon(response.data.coupon || { code: couponCode.trim().toUpperCase() });
         setCouponCode('');
       }
     } catch (error: any) {
@@ -105,7 +112,8 @@ export default function CheckoutPage() {
       dispatch(setPaymentError(null));
 
       // Create order first
-      const orderResponse = await api.post('/orders/new', {
+      const orderResponse = await api.post('/order/new', {
+        restaurant: cart.restaurantId,
         orderItems: cart.items.map(item => ({
           foodItem: item.foodItem._id,
           name: item.foodItem.name,
@@ -118,7 +126,7 @@ export default function CheckoutPage() {
           city: selectedAddress.city,
           state: selectedAddress.state,
           phoneNo: user?.phone || '',
-          postalCode: selectedAddress.pincode,
+          postalCode: selectedAddress.pincode || selectedAddress.postalCode || '',
           country: selectedAddress.country,
           coordinates: {
             latitude: 0,
@@ -129,6 +137,12 @@ export default function CheckoutPage() {
         taxPrice: tax,
         deliveryPrice: deliveryFee,
         discountAmount: discount,
+        coupon: appliedCoupon ? {
+          code: appliedCoupon.code,
+          discountType: appliedCoupon.discountType,
+          discountValue: appliedCoupon.discountValue || 0,
+          maxDiscountAmount: appliedCoupon.maxDiscountAmount
+        } : undefined,
         totalPrice: total,
         paymentInfo: {
           status: 'pending'

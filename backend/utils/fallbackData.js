@@ -349,7 +349,9 @@ const addFallbackUser = async ({ name, email, password, phone, role = 'user' }) 
     password: passwordHash,
     phone,
     role,
-    avatar: { url: 'https://res.cloudinary.com/demo/image/upload/v1622543328/sample.jpg' }
+    avatar: { url: 'https://res.cloudinary.com/demo/image/upload/v1622543328/sample.jpg' },
+    favoriteFoodItems: [],
+    favoriteRestaurants: []
   };
   fallbackUsers.push(user);
   return user;

@@ -29,6 +29,20 @@ interface PasswordPayload {
   confirmPassword: string;
 }
 
+interface FavoritePayload {
+  type: 'foodItem' | 'restaurant';
+  itemId: string;
+}
+
+interface FavoriteResponse {
+  success: boolean;
+  isFavorite: boolean;
+  favorites: {
+    foodItems: Array<string | { _id: string }>;
+    restaurants: Array<string | { _id: string }>;
+  };
+}
+
 interface UserState {
   user: User | null;
   token: string | null;
@@ -117,6 +131,15 @@ export const updatePassword = createAsyncThunk<User, PasswordPayload, { rejectVa
     return response.data.user as User;
   } catch (error) {
     return thunkAPI.rejectWithValue(getErrorMessage(error, 'Unable to update password'));
+  }
+});
+
+export const toggleFavorite = createAsyncThunk<FavoriteResponse, FavoritePayload, { rejectValue: string }>('user/toggleFavorite', async (payload, thunkAPI) => {
+  try {
+    const response = await api.post('/auth/me/favorites', payload);
+    return response.data as FavoriteResponse;
+  } catch (error) {
+    return thunkAPI.rejectWithValue(getErrorMessage(error, 'Unable to update favorites'));
   }
 });
 
@@ -215,6 +238,22 @@ const userSlice = createSlice({
       .addCase(updatePassword.rejected, (state, action) => {
         state.status = 'failed';
         state.error = getRejectedMessage(action.payload, action.error.message || 'Unable to update password');
+      })
+      .addCase(toggleFavorite.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(toggleFavorite.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.user = {
+          ...(state.user || ({} as User)),
+          favoriteFoodItems: action.payload.favorites.foodItems,
+          favoriteRestaurants: action.payload.favorites.restaurants,
+        };
+      })
+      .addCase(toggleFavorite.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = getRejectedMessage(action.payload, action.error.message || 'Unable to update favorites');
       });
   },
 });

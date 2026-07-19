@@ -11,7 +11,8 @@ import {
   Plus,
   Edit,
   Trash2,
-  Loader2
+  Loader2,
+  ImageUp
 } from 'lucide-react';
 import type { AppDispatch, RootState } from '../redux/store';
 import { logoutUser } from '../redux/userSlice';
@@ -65,6 +66,7 @@ export default function AdminDashboard() {
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploadMessage, setUploadMessage] = useState('');
 
   useEffect(() => {
     if (user?.role !== 'admin') {
@@ -98,6 +100,30 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     await dispatch(logoutUser());
     navigate('/login');
+  };
+
+  const handleImageUpload = async (endpoint: string, file: File, kind: 'restaurant' | 'food-item') => {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const response = await api.post(endpoint, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        setUploadMessage(`${kind === 'restaurant' ? 'Restaurant' : 'Food item'} image updated successfully.`);
+        await fetchDashboardData();
+      } else {
+        setUploadMessage('Image upload failed.');
+      }
+    } catch (error: any) {
+      setUploadMessage(error.response?.data?.message || 'Image upload failed.');
+    }
   };
 
   if (loading) {
@@ -166,6 +192,8 @@ export default function AdminDashboard() {
 
         {/* Main Content */}
         <main className="admin-content">
+          {uploadMessage && <div className="profile-page__message">{uploadMessage}</div>}
+
           {activeTab === 'overview' && (
             <div className="overview-section">
               <h2>Overview</h2>
@@ -231,10 +259,24 @@ export default function AdminDashboard() {
                       <p className="rating">⭐ {restaurant.rating}</p>
                     </div>
                     <div className="item-actions">
-                      <button className="icon-btn edit">
+                      <label className="icon-btn edit" title="Upload restaurant image">
+                        <ImageUp size={18} />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (file) {
+                              handleImageUpload(`/restaurants/admin/${restaurant._id}/image`, file, 'restaurant');
+                            }
+                          }}
+                        />
+                      </label>
+                      <button className="icon-btn edit" type="button">
                         <Edit size={18} />
                       </button>
-                      <button className="icon-btn delete">
+                      <button className="icon-btn delete" type="button">
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -265,10 +307,24 @@ export default function AdminDashboard() {
                       <p className="price">₹{item.price}</p>
                     </div>
                     <div className="item-actions">
-                      <button className="icon-btn edit">
+                      <label className="icon-btn edit" title="Upload food item image">
+                        <ImageUp size={18} />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (file) {
+                              handleImageUpload(`/fooditems/admin/${item._id}/image`, file, 'food-item');
+                            }
+                          }}
+                        />
+                      </label>
+                      <button className="icon-btn edit" type="button">
                         <Edit size={18} />
                       </button>
-                      <button className="icon-btn delete">
+                      <button className="icon-btn delete" type="button">
                         <Trash2 size={18} />
                       </button>
                     </div>

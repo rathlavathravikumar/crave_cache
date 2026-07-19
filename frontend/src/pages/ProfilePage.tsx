@@ -6,6 +6,7 @@ import type { AppDispatch, RootState } from '../redux/store';
 import { logoutUser, updatePassword, updateProfile } from '../redux/userSlice';
 import type { User as UserType } from '../types';
 import api from '../api';
+import NotificationPanel from '../components/NotificationPanel';
 import './ProfilePage.css';
 
 type ProfileFormState = {
@@ -35,7 +36,7 @@ const toFormState = (user: UserType | null): ProfileFormState => {
     street: address.street || '',
     city: address.city || '',
     state: address.state || '',
-    pincode: address.pincode || '',
+    pincode: address.pincode || address.postalCode || '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -137,7 +138,7 @@ export default function ProfilePage() {
 
     try {
       // Upload avatar first if there's a new file
-      let avatarUrl = form.avatarUrl;
+      let avatarUrl: string | null = form.avatarUrl ?? null;
       if (avatarFile) {
         avatarUrl = await uploadAvatarToServer();
         if (!avatarUrl) {
@@ -152,7 +153,7 @@ export default function ProfilePage() {
         street: form.street,
         city: form.city,
         state: form.state,
-        pincode: form.pincode,
+        postalCode: form.pincode,
         country: 'India',
         isDefault: true,
       }];
@@ -423,6 +424,14 @@ export default function ProfilePage() {
                 Open Order History
               </button>
             </div>
+          </div>
+
+          <div className="profile-page__section">
+            <div className="profile-page__section-header">
+              <h3>Notifications</h3>
+              <span>Latest updates</span>
+            </div>
+            <NotificationPanel />
           </div>
         </section>
       </form>
