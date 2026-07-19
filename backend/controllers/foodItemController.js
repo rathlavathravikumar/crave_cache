@@ -3,6 +3,7 @@ const ErrorHandler = require('../utils/errorHandler');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const connectDatabase = require('../config/db');
 const { isDatabaseReady, fallbackFoodItems } = require('../utils/fallbackData');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
 
 exports.getFoodItemsByMenu = catchAsyncErrors(async (req, res, next) => {
     if (!isDatabaseReady()) {
@@ -95,4 +96,46 @@ exports.newFoodItem = catchAsyncErrors(async (req, res, next) => {
         success: true,
         foodItem
     });
+});
+
+// Upload food item image => /api/v1/admin/fooditem/:id/image
+exports.uploadFoodItemImage = catchAsyncErrors(async (req, res, next) => {
+    if (!req.file) {
+        return next(new ErrorHandler('Please upload an image file', 400));
+    }
+
+    if (!isDatabaseReady()) {
+        try {
+            await connectDatabase();
+        } catch (error) {
+            // fall through to error handling
+        }
+    }
+
+    try {
+        const foodItemId = req.params.id;
+        
+        // Convert buffer to base64 for Cloudinary
+        const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+        
+        // Upload to Cloudinary
+        const imageData = await uploadToCloudinary(base64Image, 'food-items');
+
+        const foodItem = await FoodItem.findById(foodItemId);
+        if (!foodItem) {
+            return next(new ErrorHandler('Food item not found', 404));
+        }
+
+        // Delete old image if it exists
+        if (foodItem.images?.[0]?.public_id) {
+            await deleteFromCloudinary(foodItem.images[0].public_id);
+        }
+
+        foodItem.images = [imageData];
+        await foodItem.save();
+
+        res.status(200).json({ success: true, foodItem });
+    } catch (error) {
+        return next(new ErrorHandler(error.message || 'Failed to upload food item image', 500));
+    }
 });

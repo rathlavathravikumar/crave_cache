@@ -1,10 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Camera, User, Save, X, LogOut, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Camera, User, Save, X, LogOut, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
 import type { AppDispatch, RootState } from '../redux/store';
 import { logoutUser, updatePassword, updateProfile } from '../redux/userSlice';
 import type { User as UserType } from '../types';
+import api from '../api';
 import './ProfilePage.css';
 
 type ProfileFormState = {
@@ -49,6 +50,8 @@ export default function ProfilePage() {
   const [form, setForm] = React.useState<ProfileFormState>(() => toFormState(user));
   const [avatarPreview, setAvatarPreview] = React.useState<string>(user?.avatar?.url || '');
   const [message, setMessage] = React.useState<string>('');
+  const [isUploadingAvatar, setIsUploadingAvatar] = React.useState(false);
+  const [avatarFile, setAvatarFile] = React.useState<File | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   React.useEffect(() => {
@@ -78,35 +81,86 @@ export default function ProfilePage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage('File size must be less than 5MB');
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setMessage('Only image files are allowed (jpeg, jpg, png, gif, webp)');
+      return;
+    }
+
+    setAvatarFile(file);
+
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
         setAvatarPreview(reader.result);
-        setForm((current) => ({ ...current, avatarUrl: reader.result }));
       }
     };
     reader.readAsDataURL(file);
   };
 
+  const uploadAvatarToServer = async (): Promise<string | null> => {
+    if (!avatarFile) return null;
+
+    setIsUploadingAvatar(true);
+    const formData = new FormData();
+    formData.append('avatar', avatarFile);
+
+    try {
+      const response = await api.post('/me/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success && response.data.user.avatar?.url) {
+        setAvatarFile(null);
+        return response.data.user.avatar.url;
+      }
+      return null;
+    } catch (error: any) {
+      console.error('Avatar upload error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to upload avatar');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const addresses = [{
-      label: 'Home',
-      houseNo: form.houseNo,
-      street: form.street,
-      city: form.city,
-      state: form.state,
-      pincode: form.pincode,
-      country: 'India',
-      isDefault: true,
-    }];
-
     try {
+      // Upload avatar first if there's a new file
+      let avatarUrl = form.avatarUrl;
+      if (avatarFile) {
+        avatarUrl = await uploadAvatarToServer();
+        if (!avatarUrl) {
+          setMessage('Failed to upload avatar. Please try again.');
+          return;
+        }
+      }
+
+      const addresses = [{
+        label: 'Home',
+        houseNo: form.houseNo,
+        street: form.street,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode,
+        country: 'India',
+        isDefault: true,
+      }];
+
       await dispatch(updateProfile({
         name: form.name,
         phone: form.phone,
-        avatar: form.avatarUrl ? { public_id: 'profile-avatar', url: form.avatarUrl } : undefined,
+        avatar: avatarUrl ? { public_id: 'profile-avatar', url: avatarUrl } : undefined,
         addresses,
       })).unwrap();
 
@@ -172,9 +226,14 @@ export default function ProfilePage() {
                   type="button"
                   className="profile-page__avatar-action"
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
                 >
-                  <Camera size={16} />
-                  Change photo
+                  {isUploadingAvatar ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Camera size={16} />
+                  )}
+                  {isUploadingAvatar ? 'Uploading...' : 'Change photo'}
                 </button>
               )}
               <input

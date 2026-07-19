@@ -3,6 +3,7 @@ const ErrorHandler = require('../utils/errorHandler');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const connectDatabase = require('../config/db');
 const { isDatabaseReady, fallbackRestaurants } = require('../utils/fallbackData');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
 
 exports.getRestaurants = catchAsyncErrors(async (req, res, next) => {
     console.log('getRestaurants called - dbReady:', isDatabaseReady());
@@ -75,4 +76,46 @@ exports.newRestaurant = catchAsyncErrors(async (req, res, next) => {
         success: true,
         restaurant
     });
+});
+
+// Upload restaurant image => /api/v1/admin/restaurant/:id/image
+exports.uploadRestaurantImage = catchAsyncErrors(async (req, res, next) => {
+    if (!req.file) {
+        return next(new ErrorHandler('Please upload an image file', 400));
+    }
+
+    if (!isDatabaseReady()) {
+        try {
+            await connectDatabase();
+        } catch (error) {
+            // fall through to error handling
+        }
+    }
+
+    try {
+        const restaurantId = req.params.id;
+        
+        // Convert buffer to base64 for Cloudinary
+        const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+        
+        // Upload to Cloudinary
+        const imageData = await uploadToCloudinary(base64Image, 'restaurants');
+
+        const restaurant = await Restaurant.findById(restaurantId);
+        if (!restaurant) {
+            return next(new ErrorHandler('Restaurant not found', 404));
+        }
+
+        // Delete old image if it exists
+        if (restaurant.images?.[0]?.public_id) {
+            await deleteFromCloudinary(restaurant.images[0].public_id);
+        }
+
+        restaurant.images = [imageData];
+        await restaurant.save();
+
+        res.status(200).json({ success: true, restaurant });
+    } catch (error) {
+        return next(new ErrorHandler(error.message || 'Failed to upload restaurant image', 500));
+    }
 });

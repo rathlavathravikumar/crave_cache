@@ -140,20 +140,33 @@ async function handleCheckoutSessionCompleted(session) {
             return;
         }
 
-        // Update order status to paid
-        const order = await Order.findByIdAndUpdate(
-            metadata.orderId,
-            {
-                'paymentInfo.status': 'completed',
-                'paymentInfo.id': session.payment_intent,
-                paidAt: new Date()
-            },
-            { new: true }
-        );
-
-        if (order) {
-            console.log(`Order ${metadata.orderId} payment marked as completed`);
+        // Find order by session ID
+        const order = await Order.findById(metadata.orderId);
+        
+        if (!order) {
+            console.log(`Order ${metadata.orderId} not found`);
+            return;
         }
+
+        // Update order payment status and order status
+        order.paymentInfo.status = 'completed';
+        order.paymentInfo.id = session.payment_intent;
+        order.paidAt = new Date();
+        order.orderStatus = 'Confirmed';
+        
+        // Add to status history with timestamp
+        order.statusHistory.push({
+            status: 'Confirmed',
+            timestamp: new Date(),
+            notes: 'Payment completed via Stripe'
+        });
+
+        await order.save();
+
+        console.log(`Order ${metadata.orderId} payment marked as completed and status updated to Confirmed`);
+        
+        // TODO: Trigger email notification (Phase 6)
+        // await sendOrderConfirmationEmail(order);
     } catch (error) {
         console.error('Error handling checkout.session.completed:', error);
     }

@@ -4,6 +4,8 @@ const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const sendToken = require('../utils/jwtToken');
 const connectDatabase = require('../config/db');
 const { isDatabaseReady, addFallbackUser, getFallbackUserByEmail, getFallbackUserById, compareFallbackPassword, createFallbackToken, updateFallbackUser } = require('../utils/fallbackData');
+const { uploadToCloudinary } = require('../utils/cloudinary');
+const upload = require('../middlewares/upload');
 
 exports.registerUser = catchAsyncErrors(async (req, res, next) => {
     const { name, email, password, confirmPassword, phone, role } = req.body;
@@ -233,4 +235,59 @@ exports.updatePassword = catchAsyncErrors(async (req, res, next) => {
     await user.save();
 
     sendToken(user, 200, res);
+});
+
+// Upload user avatar => /api/v1/me/avatar
+exports.uploadAvatar = catchAsyncErrors(async (req, res, next) => {
+    if (!req.file) {
+        return next(new ErrorHandler('Please upload an image file', 400));
+    }
+
+    if (!isDatabaseReady()) {
+        try {
+            await connectDatabase();
+        } catch (error) {
+            // fall through to fallback handling
+        }
+    }
+
+    try {
+        // Convert buffer to base64 for Cloudinary
+        const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+        
+        // Upload to Cloudinary
+        const avatarData = await uploadToCloudinary(base64Image, 'avatars');
+
+        if (!isDatabaseReady()) {
+            const existingUser = getFallbackUserById(req.user.id);
+            if (!existingUser) {
+                return next(new ErrorHandler('User not found', 404));
+            }
+
+            const updatedUser = updateFallbackUser(req.user.id, {
+                ...existingUser,
+                avatar: avatarData
+            });
+
+            return res.status(200).json({ success: true, user: updatedUser });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return next(new ErrorHandler('User not found', 404));
+        }
+
+        // Delete old avatar if it exists and is not default
+        if (user.avatar?.public_id && user.avatar.public_id !== 'default_avatar_id') {
+            const { deleteFromCloudinary } = require('../utils/cloudinary');
+            await deleteFromCloudinary(user.avatar.public_id);
+        }
+
+        user.avatar = avatarData;
+        await user.save();
+
+        res.status(200).json({ success: true, user });
+    } catch (error) {
+        return next(new ErrorHandler(error.message || 'Failed to upload avatar', 500));
+    }
 });

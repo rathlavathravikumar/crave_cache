@@ -66,6 +66,7 @@ const order = require('./routes/order');
 const ai = require('./routes/ai');
 const payment = require('./routes/payment');
 const review = require('./routes/review');
+const admin = require('./routes/admin');
 
 app.get('/', (req, res) => res.json({ success: true, message: 'Food Genie API is running', version: '1.0.0', health: '/api/v1/health' }));
 app.get('/api/v1/health', (req, res) => res.json({ success: true, message: 'Food Genie API is running', timestamp: new Date().toISOString() }));
@@ -80,6 +81,7 @@ app.use('/api/v1/orders', order);
 app.use('/api/v1/ai', ai);
 app.use('/api/v1/payment', payment);
 app.use('/api/v1/reviews', review);
+app.use('/api/v1/admin', admin);
 
 app.use((req, res) => {
     res.status(404).json({
